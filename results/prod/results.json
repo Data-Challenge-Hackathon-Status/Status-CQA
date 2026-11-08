@@ -860,7 +860,7 @@
     {
       "conversation_id": "p2-en-002",
       "criteria": [],
-      "error": "ollama_connection_or_timeout",
+      "error": "incomplete_model_response",
       "score": null,
       "status": "error"
     }
