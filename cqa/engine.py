@@ -43,6 +43,13 @@ def implementation_hash() -> str:
     return hashlib.sha256(b"".join(f.name.encode() + f.read_bytes() for f in files)).hexdigest()
 
 
+def _ollama_length_without_answer(raw: dict) -> bool:
+    message = raw.get("message")
+    content = message.get("content") if isinstance(message, dict) else None
+    return (raw.get("done") is True and raw.get("done_reason") == "length"
+            and isinstance(content, str) and not content.strip())
+
+
 def usage_cost(raw: dict, settings: Settings) -> Decimal | None:
     if settings.pricing is None:
         return None
@@ -143,6 +150,8 @@ class Engine:
         previous_errors = None
         spent = Decimal(0)
         output_limit = self.settings.max_output_tokens
+        direct_retry_only = self.settings.ollama_retry_without_thinking_on_length
+        next_request = prepared["request"] if prepared is not None else None
         try:
             provider = self.provider or create_provider(self.settings)
         except ProviderError as exc:
@@ -151,9 +160,13 @@ class Engine:
             return result
         for number in range(1, self.settings.max_attempts + 1):
             try:
-                request = prepared["request"] if prepared else build_request(
-                    self.settings, build_input(dialogue, checklist, knowledge, previous_errors),
-                    response_schema(checklist, knowledge, dialogue), output_limit)
+                if next_request is None:
+                    request = build_request(
+                        self.settings, build_input(dialogue, checklist, knowledge, previous_errors),
+                        response_schema(checklist, knowledge, dialogue), output_limit)
+                else:
+                    request = next_request
+                    next_request = None
             except ValueError as exc:
                 result.update(status="failed", error="request_preflight:" + str(exc))
                 break
@@ -196,9 +209,15 @@ class Engine:
                     result.update(status="failed", error="model_refusal")
                 elif response.status != "completed":
                     result.update(status="failed", error="incomplete_model_response")
-                    previous_errors = ["Предыдущий ответ не завершён. Дай краткий, но полный ответ по всем критериям."]
-                    output_limit = min(output_limit * 2, 32000)
-                    retryable = True
+                    if direct_retry_only:
+                        if number == 1 and request["think"] and _ollama_length_without_answer(response.raw):
+                            next_request = {**request, "think": False}
+                            attempt["retry_reason"] = "ollama_length_without_final_content"
+                            retryable = True
+                    else:
+                        previous_errors = ["Предыдущий ответ не завершён. Дай краткий, но полный ответ по всем критериям."]
+                        output_limit = min(output_limit * 2, 32000)
+                        retryable = True
                 else:
                     try:
                         assessment = ModelAssessment.model_validate_json(response.text)
@@ -215,7 +234,7 @@ class Engine:
                                                + ": " + e["type"] for e in exc.errors()]
                         attempt["errors"] = previous_errors
                         result.update(status="failed", error="invalid_model_response")
-                        retryable = True
+                        retryable = not direct_retry_only
                     else:
                         unverified = any(d.knowledge_status == "unverified" for d in assessment.criteria.values())
                         result.update(status="provisional" if unverified else "completed", error=None,
@@ -230,7 +249,7 @@ class Engine:
                 result["billing_uncertain"] |= exc.charge_unknown
                 self.store.finish_call(call_id, cost=None if external_compute or exc.charge_unknown else Decimal(0),
                                        state="provider_error", payload={"error": exc.code})
-                retryable = exc.retryable
+                retryable = exc.retryable and not direct_retry_only
             except Exception as exc:  # noqa: BLE001 -- persist a safe failure at the external-call boundary
                 # Keep the reservation; an unexpected client error can happen after billing.
                 result.update(status="failed", error="internal_error:" + type(exc).__name__, billing_uncertain=True)

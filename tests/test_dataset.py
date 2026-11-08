@@ -24,8 +24,9 @@ def test_control_cli_uses_reviewed_rubric_and_exports_new_ids(tmp_path, dialogue
     checklist = Checklist.model_validate(read_json("config/checklist.review-v4.1.json"))
     control = Settings.model_validate(read_json("config/settings.brev.prod.json"))
     product = Settings.model_validate(read_json("config/settings.product.json"))
-    assert control.model_dump(exclude={"timeout_seconds"}) == product.model_dump(exclude={"timeout_seconds"})
-    assert control.timeout_seconds == 180 and control.max_attempts == 1
+    assert control == product
+    assert control.timeout_seconds == 300 and control.max_attempts == 2
+    assert control.ollama_retry_without_thinking_on_length
     assert checklist.version == "1.2.1"
     provider = FakeProvider([provider_response(valid_answer(checklist)) for _ in range(10)])
     monkeypatch.setattr("cqa.engine.create_provider", lambda settings: provider)

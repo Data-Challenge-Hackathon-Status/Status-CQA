@@ -239,6 +239,7 @@ class Settings(Record):
     ollama_version: str | None = None
     ollama_num_ctx: int = Field(default=32768, ge=8192, le=32768)
     ollama_think: bool = False
+    ollama_retry_without_thinking_on_length: bool = False
     ollama_temperature: float = Field(default=0, ge=0, le=2)
     ollama_seed: int = 42
     ollama_top_p: float | None = Field(default=None, gt=0, le=1)
@@ -256,10 +257,16 @@ class Settings(Record):
                     "context_tokenizer_sha256", "context_safety_tokens"):
             if getattr(self, key) is None:
                 data.pop(key, None)
+        if not self.ollama_retry_without_thinking_on_length:
+            data.pop("ollama_retry_without_thinking_on_length", None)
         return data
 
     @model_validator(mode="after")
     def provider_settings(self):
+        if self.ollama_retry_without_thinking_on_length and (
+            self.provider != "ollama" or not self.ollama_think or self.max_attempts != 2
+        ):
+            raise ValueError("Повтор без рассуждений требует Ollama, ollama_think=true и max_attempts=2")
         if bool(self.context_tokenizer_path) != bool(self.context_tokenizer_sha256):
             raise ValueError("Токенизатор требует путь и SHA256 вместе")
         if self.provider == "openai":
