@@ -1,0 +1,8 @@
+{
+  "bytes": 11422654,
+  "is_model_weights": false,
+  "model": "Qwen/Qwen3-32B",
+  "revision": "9216db5781bf21249d130ec9da846c4624c16137",
+  "sha256": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+  "url": "https://huggingface.co/Qwen/Qwen3-32B/resolve/9216db5781bf21249d130ec9da846c4624c16137/tokenizer.json"
+}

@@ -1,0 +1,18 @@
+{
+  "provider": "ollama",
+  "model": "qwen3:32b",
+  "base_url": "http://127.0.0.1:11435",
+  "reasoning_effort": null,
+  "max_output_tokens": 6000,
+  "timeout_seconds": 300,
+  "max_attempts": 2,
+  "budget_usd": null,
+  "pricing": null,
+  "max_calls": 200,
+  "max_input_bytes": 150000,
+  "ollama_version": "0.40.15",
+  "ollama_num_ctx": 32768,
+  "ollama_think": true,
+  "ollama_temperature": 0,
+  "ollama_seed": 42
+}

@@ -1,0 +1,10 @@
+{
+  "conversation_id": "example-001", "channel": "agent chat", "language": "RU", "audio_url": null,
+  "transcript": [
+    {"id": "m1", "timestamp": "00:00", "speaker": "bot", "text": "Здравствуйте!"},
+    {"id": "m2", "timestamp": "00:02", "speaker": "client", "text": "Что означает слово «транскрипт»?"},
+    {"id": "m3", "timestamp": "00:10", "speaker": "operator", "text": "Здравствуйте! Меня зовут Анна. Транскрипт — текстовая запись разговора."},
+    {"id": "m4", "timestamp": "00:18", "speaker": "client", "text": "Понятно, спасибо."},
+    {"id": "m5", "timestamp": "00:20", "speaker": "system", "text": "Оператор закрыл чат."}
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "team_name": "Status",
+  "criterion_ids": {
+    "c1": "contact",
+    "c2": "discovery",
+    "c3": "identification",
+    "c4": "consultation",
+    "c5": "empathy",
+    "c6": "dialogue",
+    "c7": "closure",
+    "c8": "critical"
+  }
+}
